@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Katachi</string>
+    <string name="app_name_full">Katachi 形</string>
+    <string name="back">Back</string>
+    <string name="next">Next</string>
+    <string name="solved_in">Solved in %1$s</string>
+
+    <string name="home_progress">%1$d of %2$d solved today</string>
+    <plurals name="home_streak">
+        <item quantity="one">%d day in a row with the whole set</item>
+        <item quantity="other">%d days in a row with the whole set</item>
+    </plurals>
+    <string name="home_pace">Tangrams this week: %1$s each on average</string>
+    <string name="home_pace_compare">Tangrams this week: %1$s each on average (the week before: %2$s)</string>
+    <string name="section_tangram">Tangram</string>
+    <string name="section_tangram_hint">Fill each silhouette with all seven pieces.</string>
+    <string name="section_matrix">Spot the pattern</string>
+    <string name="section_matrix_hint">Find the rule and pick the missing grid.</string>
+    <string name="section_build">Build the pattern</string>
+    <string name="section_build_hint">Finish the grid so it follows the rule.</string>
+    <string name="engine_lume">New puzzles every day, made and checked by the Lume core</string>
+    <string name="engine_kotlin">New puzzles every day, made and checked in Kotlin (Lume core not loaded)</string>
+
+    <string name="tangram_title">Tangram %1$d of %2$d</string>
+    <string name="tangram_help">Drag a piece to move it, tap it to turn it. Pieces snap to corners when they are close.</string>
+    <string name="tangram_flip">Flip</string>
+    <string name="tangram_hint">Hint</string>
+    <string name="tangram_reset">Put the pieces back</string>
+
+    <string name="matrix_title">Pattern %1$d of %2$d</string>
+    <string name="matrix_help">Each row follows the same rule. Work out the rule, then pick the grid that belongs in the gap.</string>
+    <string name="matrix_pick">Which one goes in the gap?</string>
+    <string name="matrix_wrong">Not that one. Look at how the first two grids in each row are related.</string>
+
+    <string name="build_title">Build %1$d of %2$d</string>
+    <string name="build_help">The shaded part is given. Tap squares in the rest to fill them in, then check.</string>
+    <string name="build_check">Check</string>
+    <plurals name="build_off">
+        <item quantity="one">%d square is off. Keep going.</item>
+        <item quantity="other">%d squares are off. Keep going.</item>
+    </plurals>
+</resources>

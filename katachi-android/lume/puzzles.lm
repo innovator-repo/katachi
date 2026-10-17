@@ -1,0 +1,141 @@
+# Katachi core, in Lume. Compiled to liblumecore.so for Android.
+#
+# Every pattern is a 6×6 grid of 0 and 1, and every way of moving one is a
+# matrix product with a fixed 0/1 matrix:
+#   J, the anti-identity:  x @ J mirrors left-right, J @ x flips top-bottom
+#   S, the cyclic shift:   x @ S moves right one column, S.T @ x down one row
+# so a quarter turn is x.T @ J, and a symmetric figure is a figure overlaid
+# with its own reflection. Tangram answers are checked on a 96×96 raster.
+#
+# Fixed shapes, because compiled Lume needs every dimension known. Kotlin
+# fills the inputs; the generators and screens live there.
+
+fn anti() -> tensor[f32, (6, 6)] {
+    return tensor([[0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+                   [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                   [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                   [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                   [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                   [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+}
+
+fn cycle() -> tensor[f32, (6, 6)] {
+    return tensor([[0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                   [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                   [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                   [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                   [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+                   [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+}
+
+# Cells set in either grid.
+fn overlay(a: tensor[f32, (6, 6)], b: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    return a + b - a * b
+}
+
+# Cells set in exactly one grid.
+fn differ(a: tensor[f32, (6, 6)], b: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    return (a - b) * (a - b)
+}
+
+fn turn(x: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    return x.T @ anti()
+}
+
+fn mirror(x: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    return x @ anti()
+}
+
+fn flip(x: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    return anti() @ x
+}
+
+fn right(x: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    return x @ cycle()
+}
+
+fn down(x: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    return cycle().T @ x
+}
+
+# Completions for pattern building: the given part overlaid with its images.
+fn mirror_fill(x: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    return overlay(x, mirror(x))
+}
+
+fn quarter_fill(x: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    let half = overlay(x, mirror(x))
+    return overlay(half, flip(half))
+}
+
+fn half_turn_fill(x: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    return overlay(x, turn(turn(x)))
+}
+
+fn tile_fill(x: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    let s3 = cycle() @ cycle() @ cycle()
+    let row = overlay(x, x @ s3)
+    return overlay(row, s3.T @ row)
+}
+
+# The operations Kotlin asks for by number (see GridOp in core/).
+fn apply(op: int, a: tensor[f32, (6, 6)], b: tensor[f32, (6, 6)]) -> tensor[f32, (6, 6)] {
+    if op == 0 {
+        return turn(a)
+    } else if op == 1 {
+        return mirror(a)
+    } else if op == 2 {
+        return flip(a)
+    } else if op == 3 {
+        return right(a)
+    } else if op == 4 {
+        return down(a)
+    } else if op == 5 {
+        return 1.0 - a
+    } else if op == 6 {
+        return overlay(a, b)
+    } else if op == 7 {
+        return differ(a, b)
+    } else if op == 8 {
+        return mirror_fill(a)
+    } else if op == 9 {
+        return quarter_fill(a)
+    } else if op == 10 {
+        return half_turn_fill(a)
+    } else if op == 11 {
+        return tile_fill(a)
+    }
+    return a
+}
+
+# How many cells two grids disagree on.
+fn mismatch(a: tensor[f32, (6, 6)], b: tensor[f32, (6, 6)]) -> float {
+    return differ(a, b).sum()
+}
+
+# Tangram check. target is 1 inside the silhouette; cover counts how many
+# placed pieces cover each cell. Returns the share of the silhouette's area
+# that is wrong: uncovered, covered twice, or covered outside it.
+fn tangram_error(target: tensor[f32, (96, 96)], cover: tensor[f32, (96, 96)]) -> float {
+    let wrong = (target - cover).relu() + (cover - target).relu()
+    return wrong.sum() / (target.sum() + 0.000001)
+}
+
+fn main() {
+    # A self-check the interpreter, native and wasm runners must agree on.
+    let none = zeros(6, 6)
+    let l = tensor([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+    print("turned:", apply(0, l, none)[0])
+    print("four turns:", mismatch(turn(turn(turn(turn(l)))), l))
+    print("mirror vs turn:", mismatch(apply(1, l, none), apply(0, l, none)))
+    print("quarter fill cells:", apply(9, l, none).sum())
+    print("tile fill cells:", apply(11, l, none).sum())
+    print("right then down:", apply(4, apply(3, l, none), none)[1])
+    let target = ones(96, 96)
+    print("half covered:", tangram_error(target, target * 0.5))
+}
