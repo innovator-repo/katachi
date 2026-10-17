@@ -5,8 +5,19 @@
     <string name="back">Back</string>
     <string name="next">Next</string>
     <string name="solved_in">Solved in %1$s</string>
+    <string name="level">Level %1$d</string>
 
     <string name="home_progress">%1$d of %2$d solved today</string>
+    <string name="home_ring">%1$d/%2$d</string>
+    <plurals name="home_level_next">
+        <item quantity="one">Solve %1$d more today to reach level %2$d tomorrow.</item>
+        <item quantity="other">Solve %1$d more today to reach level %2$d tomorrow.</item>
+    </plurals>
+    <string name="home_level_won">Level %1$d unlocked. It starts tomorrow.</string>
+    <string name="home_level_top">You are at the top level. Keep the streak going.</string>
+    <string name="home_start">Start</string>
+    <string name="home_continue">Continue</string>
+    <string name="home_done">All done for today. New puzzles tomorrow.</string>
     <plurals name="home_streak">
         <item quantity="one">%d day in a row with the whole set</item>
         <item quantity="other">%d days in a row with the whole set</item>
@@ -26,6 +37,7 @@
     <string name="tangram_help">Drag a piece to move it, tap it to turn it. Pieces snap to corners when they are close.</string>
     <string name="tangram_flip">Flip</string>
     <string name="tangram_hint">Hint</string>
+    <string name="tangram_cover">%1$d%% covered</string>
     <string name="tangram_reset">Put the pieces back</string>
 
     <string name="matrix_title">Pattern %1$d of %2$d</string>

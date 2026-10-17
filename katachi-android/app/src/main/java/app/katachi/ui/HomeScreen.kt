@@ -14,11 +14,19 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Button
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import app.katachi.core.Difficulty
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
@@ -58,14 +66,51 @@ fun HomeScreen(set: DailySet, onOpen: (Kind, Int) -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(stringResource(R.string.app_name_full), style = MaterialTheme.typography.headlineMedium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.app_name_full), style = MaterialTheme.typography.headlineMedium)
+                Text(
+                    set.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    Text(
+                        stringResource(R.string.level, set.level),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    )
+                }
+            }
+            ProgressRing(solved, DailySet.TOTAL)
+        }
         Text(
-            set.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
+            when {
+                set.level >= Difficulty.MAX -> stringResource(R.string.home_level_top)
+                solved >= Difficulty.TO_LEVEL_UP -> stringResource(R.string.home_level_won, set.level + 1)
+                else -> (Difficulty.TO_LEVEL_UP - solved).let {
+                    pluralStringResource(R.plurals.home_level_next, it, it, set.level + 1)
+                }
+            },
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(stringResource(R.string.home_progress, solved, DailySet.TOTAL), style = MaterialTheme.typography.titleMedium)
-        LinearProgressIndicator(progress = solved / DailySet.TOTAL.toFloat(), modifier = Modifier.fillMaxWidth())
+        val upcoming = DailySet.order.firstOrNull { (kind, i) -> !day.solved(DailySet.id(kind, i)) }
+        if (upcoming != null) {
+            Button(onClick = { onOpen(upcoming.first, upcoming.second) }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                Text(
+                    stringResource(if (solved == 0) R.string.home_start else R.string.home_continue),
+                    Modifier.padding(start = 6.dp),
+                )
+            }
+        } else {
+            Text(stringResource(R.string.home_done), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
         val streak = history.streak(set.date)
         if (streak > 0) Text(pluralStringResource(R.plurals.home_streak, streak, streak), style = MaterialTheme.typography.bodyMedium)
         val pace = history.tangramPace(set.date)
@@ -99,6 +144,24 @@ fun HomeScreen(set: DailySet, onOpen: (Kind, Int) -> Unit) {
     }
 }
 
+/** How much of the day is done, as a ring that fills as puzzles are solved. */
+@Composable
+private fun ProgressRing(solved: Int, total: Int) {
+    val sweep = animatedFraction(solved / total.toFloat())
+    val track = MaterialTheme.colorScheme.surfaceVariant
+    val fill = MaterialTheme.colorScheme.primary
+    Box(Modifier.size(84.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val width = 8.dp.toPx()
+            val inset = Offset(width / 2, width / 2)
+            val arc = Size(size.width - width, size.height - width)
+            drawArc(track, 0f, 360f, false, inset, arc, style = Stroke(width))
+            drawArc(fill, -90f, 360f * sweep, false, inset, arc, style = Stroke(width, cap = StrokeCap.Round))
+        }
+        Text(stringResource(R.string.home_ring, solved, total), style = MaterialTheme.typography.titleMedium)
+    }
+}
+
 @Composable
 private fun Section(title: String, hint: String) {
     Column(Modifier.padding(top = 8.dp)) {
@@ -129,11 +192,12 @@ private fun TileRow(count: Int, kind: Kind, day: Day, onOpen: (Kind, Int) -> Uni
                 Box(Modifier.fillMaxWidth().aspectRatio(1f).padding(4.dp)) {
                     preview(i)
                     if (result != null) {
+                        val pop = popScale(result.id)
                         Icon(
                             Icons.Filled.CheckCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.align(Alignment.TopEnd).size(18.dp),
+                            modifier = Modifier.align(Alignment.TopEnd).size(18.dp).scale(pop),
                         )
                     }
                 }

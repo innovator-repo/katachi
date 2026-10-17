@@ -5,6 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -15,6 +22,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,25 +59,20 @@ class MainActivity : ComponentActivity() {
 private data class Open(val kind: Kind, val index: Int)
 
 /** The order "Next" walks through: tangrams, then recognition, then building. */
-private val order = Kind.entries.flatMap { kind ->
-    val count = when (kind) {
-        Kind.TANGRAM -> DailySet.TANGRAMS
-        Kind.MATRIX -> DailySet.MATRICES
-        Kind.BUILD -> DailySet.BUILDS
-    }
-    (0 until count).map { Open(kind, it) }
-}
+private val order = DailySet.order.map { (kind, i) -> Open(kind, i) }
 
 @Composable
 private fun Katachi(todayState: MutableState<LocalDate>) {
     val today by todayState
-    val set by produceState<DailySet?>(null, today) {
+    val store = LocalContext.current.store
+    // Earlier days only, so the level holds still while today's puzzles are being solved.
+    val level = remember(today) { store.history.value.level(today) }
+    val set by produceState<DailySet?>(null, today, level) {
         value = null
-        value = withContext(Dispatchers.Default) { DailySet(today, LumeCore.active) }
+        value = withContext(Dispatchers.Default) { DailySet(today, LumeCore.active, level) }
     }
     var openKind by rememberSaveable(today) { mutableStateOf<Kind?>(null) }
     var openIndex by rememberSaveable(today) { mutableStateOf(0) }
-    val store = LocalContext.current.store
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         val daily = set
@@ -77,24 +80,36 @@ private fun Katachi(todayState: MutableState<LocalDate>) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             return@Surface
         }
-        val kind = openKind
-        if (kind == null) {
-            HomeScreen(daily, onOpen = { k, i -> openKind = k; openIndex = i })
-            return@Surface
-        }
-        BackHandler { openKind = null }
-        val close = { openKind = null }
-        val next = {
-            val solved = store.history.value.day(today)
-            val here = order.indexOf(Open(kind, openIndex))
-            val upcoming = (order.drop(here + 1) + order.take(here + 1))
-                .firstOrNull { !solved.solved(DailySet.id(it.kind, it.index)) }
-            if (upcoming == null) openKind = null else { openKind = upcoming.kind; openIndex = upcoming.index }
-        }
-        when (kind) {
-            Kind.TANGRAM -> TangramScreen(daily, openIndex, onBack = close, onNext = next)
-            Kind.MATRIX -> MatrixScreen(daily, openIndex, onBack = close, onNext = next)
-            Kind.BUILD -> BuildScreen(daily, openIndex, onBack = close, onNext = next)
+        val shown = openKind?.let { Open(it, openIndex) }
+        if (shown != null) BackHandler { openKind = null }
+        AnimatedContent(
+            shown,
+            transitionSpec = {
+                // Into a puzzle slides in from the right; back home slides the other way.
+                val forward = targetState != null && (initialState == null || order.indexOf(targetState!!) > order.indexOf(initialState!!))
+                val sign = if (forward) 1 else -1
+                (slideInHorizontally(tween(280)) { it * sign / 3 } + fadeIn(tween(280))) togetherWith
+                    (slideOutHorizontally(tween(220)) { -it * sign / 4 } + fadeOut(tween(200)))
+            },
+            label = "screen",
+        ) { open ->
+            if (open == null) {
+                HomeScreen(daily, onOpen = { k, i -> openKind = k; openIndex = i })
+                return@AnimatedContent
+            }
+            val close = { openKind = null }
+            val next = {
+                val solved = store.history.value.day(today)
+                val here = order.indexOf(open)
+                val upcoming = (order.drop(here + 1) + order.take(here + 1))
+                    .firstOrNull { !solved.solved(DailySet.id(it.kind, it.index)) }
+                if (upcoming == null) openKind = null else { openKind = upcoming.kind; openIndex = upcoming.index }
+            }
+            when (open.kind) {
+                Kind.TANGRAM -> TangramScreen(daily, open.index, onBack = close, onNext = next)
+                Kind.MATRIX -> MatrixScreen(daily, open.index, onBack = close, onNext = next)
+                Kind.BUILD -> BuildScreen(daily, open.index, onBack = close, onNext = next)
+            }
         }
     }
 }

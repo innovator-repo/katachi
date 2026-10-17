@@ -36,6 +36,15 @@ data class History(val days: List<Day> = emptyList()) {
         return run
     }
 
+    /**
+     * The level for [today]: one more for every earlier day with at least [Difficulty.TO_LEVEL_UP]
+     * puzzles solved. Days missed or half done don't lower it; they just don't raise it.
+     */
+    fun level(today: LocalDate): Int {
+        val good = days.count { it.date < today.toString() && it.results.size >= Difficulty.TO_LEVEL_UP }
+        return minOf(Difficulty.MAX, 1 + good)
+    }
+
     /** Mean seconds per tangram over the 7 days ending [end], or null with nothing solved. */
     fun tangramPace(end: LocalDate): Double? {
         val window = (0L until 7L).map { end.minusDays(it).toString() }.toSet()

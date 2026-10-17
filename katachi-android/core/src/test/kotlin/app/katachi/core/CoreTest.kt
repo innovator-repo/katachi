@@ -126,7 +126,7 @@ class CoreTest {
         assertEquals(a.tangrams.map { it.tangram }, b.tangrams.map { it.tangram })
         assertEquals(a.matrices.map { it.answer }, b.matrices.map { it.answer })
         assertNotEquals(a.tangrams.map { it.tangram }, c.tangrams.map { it.tangram })
-        assertEquals(listOf(2, 1, 0, 0, 0), a.tangrams.map { it.outlinesShown })
+        assertEquals(listOf(3, 2, 1, 0, 0), a.tangrams.map { it.outlinesShown })
     }
 
     @Test fun historyCountsStreaksAndPace() {
@@ -145,5 +145,45 @@ class CoreTest {
         assertEquals(h, h.withResult(today, Result("t0", seconds = 99)))
         assertEquals((15 * 60 + 30) / 16.0, h.tangramPace(today)!!, 1e-9)
         assertEquals(h, Codec.decode(Codec.encode(h)))
+    }
+
+    @Test fun aGoodDayRaisesTheLevelByOne() {
+        val today = LocalDate.of(2026, 10, 17)
+        var h = History()
+        assertEquals(1, h.level(today))
+        val yesterday = today.minusDays(1)
+        for (i in 0 until Difficulty.TO_LEVEL_UP - 1) h = h.withResult(yesterday, Result("x$i", 10))
+        assertEquals(1, h.level(today))
+        h = h.withResult(yesterday, Result("last", 10))
+        assertEquals(2, h.level(today))
+        // Today's own progress only counts from tomorrow.
+        for (i in 0 until DailySet.TOTAL) h = h.withResult(today, Result("t$i", 10))
+        assertEquals(2, h.level(today))
+        assertEquals(3, h.level(today.plusDays(1)))
+    }
+
+    @Test fun difficultyOnlyEverGetsHarder() {
+        for (level in 1 until Difficulty.MAX) {
+            val now = Difficulty(level)
+            val next = Difficulty(level + 1)
+            for (i in 0 until DailySet.TANGRAMS) {
+                assertTrue(next.tangramOutlines(i) <= now.tangramOutlines(i))
+                assertTrue(!now.tangramCompact(i) || next.tangramCompact(i))
+            }
+            assertTrue(next.matrixKinds.sum() >= now.matrixKinds.sum())
+            assertTrue(next.matrixMoves.containsAll(now.matrixMoves))
+            assertTrue(next.matrixSizes.first >= now.matrixSizes.first)
+            assertTrue(next.buildFill >= now.buildFill)
+        }
+    }
+
+    @Test fun everyLevelMakesAFullSet() {
+        val day = LocalDate.of(2026, 10, 17)
+        for (level in listOf(1, 3, 5, 8, 12, 20, Difficulty.MAX)) {
+            val set = DailySet(day, math, level)
+            assertEquals(DailySet.TANGRAMS, set.tangrams.size)
+            assertEquals(set.difficulty.matrixKinds.size, set.matrices.size)
+            set.matrices.forEach { assertEquals(0.0, math.mismatch(it.options[it.answer], it.cells[8]), 0.0) }
+        }
     }
 }
