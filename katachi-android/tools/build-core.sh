@@ -24,6 +24,12 @@ bin="$(ls -d "$ndk"/toolchains/llvm/prebuilt/*/bin | head -1)"
 (cd "$lume_home" && python3 -m lume llvm "$here/lume/puzzles.lm") > "$work/core.ll"
 sed -i '/^define i32 @main() {/,/^}/d' "$work/core.ll"
 
+# Export only the JNI entry points and bind every internal call inside the
+# library: the core's names (apply, turn, flip...) are generic, and the
+# dynamic linker would otherwise resolve them to any same-named symbol
+# already loaded in the app process.
+printf '{ global: Java_*; local: *; };\n' > "$work/exports.map"
+
 for pair in "arm64-v8a aarch64-linux-android26" "x86_64 x86_64-linux-android26"; do
     set -- $pair
     abi="$1"; triple="$2"
@@ -31,7 +37,8 @@ for pair in "arm64-v8a aarch64-linux-android26" "x86_64 x86_64-linux-android26";
     mkdir -p "$out"
     "$bin/clang" --target="$triple" -O2 -fPIC -shared -Wno-override-module \
         -x ir "$work/core.ll" -x c "$lume_home/runtime/lume_rt.c" "$here/lume/lume_jni.c" \
-        -lm -Wl,-z,max-page-size=16384 -o "$out/liblumecore.so"
+        -lm -Wl,-z,max-page-size=16384 -Wl,-Bsymbolic -Wl,--version-script="$work/exports.map" \
+        -o "$out/liblumecore.so"
     echo "built $out/liblumecore.so ($(wc -c < "$out/liblumecore.so") bytes)"
 done
 

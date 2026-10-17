@@ -6,9 +6,12 @@ on:
     paths: ["katachi-android/**", ".github/workflows/katachi-apk.yml"]
   workflow_dispatch:
 
+# Builds the APK, tests it on an Android emulator, and only uploads it once
+# the emulator run passes.
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: katachi-android
@@ -26,7 +29,37 @@ jobs:
           gradle-version: "8.14.3"
       # The Lume core libraries are committed in app/src/main/jniLibs, so no NDK is needed here.
       - run: gradle -PcoreOnly :core:test
-      - run: gradle :app:assembleRelease
+      - run: gradle :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Enable KVM for the emulator
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: katachi-android
+          script: |
+            gradle :app:connectedDebugAndroidTest
+            tools/smoke.sh app/build/outputs/apk/release/app-release.apk
+      - name: Keep the emulator logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-logs
+          path: |
+            katachi-android/smoke-screen.png
+            katachi-android/smoke-logcat.txt
+            katachi-android/app/build/reports/androidTests/
+            katachi-android/app/build/outputs/androidTest-results/
+          if-no-files-found: ignore
       - run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Katachi-0.1.0.apk
       - uses: actions/upload-artifact@v4
         with:
