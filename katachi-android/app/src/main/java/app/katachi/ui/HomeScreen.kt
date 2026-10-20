@@ -43,6 +43,9 @@ import androidx.compose.ui.unit.dp
 import app.katachi.LumeCore
 import app.katachi.R
 import app.katachi.core.DailySet
+import app.katachi.designsystem.LumeType
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import app.katachi.core.DailyTarget
 import app.katachi.designsystem.GroupedList
 import app.katachi.designsystem.GroupedRow
@@ -76,7 +79,16 @@ fun HomeScreen(set: DailySet, onOpen: (Kind, Int) -> Unit) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.app_name_full), style = MaterialTheme.typography.headlineMedium)
+                Text(
+                    buildAnnotatedString {
+                        val name = stringResource(R.string.app_name_full)
+                        append(name)
+                        // The kanji is set in Noto Serif JP; Newsreader has no glyph for it.
+                        val kanji = name.indexOf('形')
+                        if (kanji >= 0) addStyle(SpanStyle(fontFamily = LumeType.NotoSerifJP), kanji, kanji + 1)
+                    },
+                    style = MaterialTheme.typography.headlineMedium,
+                )
                 Text(
                     set.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
                     style = MaterialTheme.typography.bodyMedium,

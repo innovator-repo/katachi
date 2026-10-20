@@ -8,19 +8,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import app.katachi.R
 
-/**
- * The four voices. Only Geist ships with Katachi so far; the others fall back to the system
- * monospace and serif faces until their font files are bundled (the names stay the same).
- */
+/** The four voices, shared with the other Lume apps. */
 object LumeType {
     val Geist = FontFamily(
         Font(R.font.geist_regular, FontWeight.Normal),
         Font(R.font.geist_medium, FontWeight.Medium),
         Font(R.font.geist_semibold, FontWeight.SemiBold),
     )
-    val GeistMono: FontFamily = FontFamily.Monospace
-    val Newsreader: FontFamily = FontFamily.Serif
-    val NotoSerifJP: FontFamily = FontFamily.Serif
+    val GeistMono = FontFamily(Font(R.font.geist_mono_regular, FontWeight.Normal))
+    val Newsreader = FontFamily(
+        Font(R.font.newsreader_regular, FontWeight.Normal),
+        Font(R.font.newsreader_semibold, FontWeight.SemiBold),
+    )
+    val NotoSerifJP = FontFamily(
+        Font(R.font.noto_serif_jp_regular, FontWeight.Normal),
+        Font(R.font.noto_serif_jp_semibold, FontWeight.SemiBold),
+    )
 
     private fun style(size: Int, weight: FontWeight = FontWeight.Normal, family: FontFamily = Geist) =
         TextStyle(fontFamily = family, fontWeight = weight, fontSize = size.sp)
