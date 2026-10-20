@@ -210,8 +210,9 @@ class LumeTest {
 
     @Test fun nearbyAlignedCornerAttracts() {
         val pull = Magnet.pull(shifted(1.05, 0.02), listOf(square), 0.2)!!
-        assertEquals(-0.05, pull.x, 1e-9)
-        assertEquals(-0.02, pull.y, 1e-9)
+        assertEquals(-0.05, pull.move.x, 1e-9)
+        assertEquals(-0.02, pull.move.y, 1e-9)
+        assertEquals(1.0, pull.anchor.x, 0.0)
     }
 
     @Test fun farPieceIsLeftAlone() {

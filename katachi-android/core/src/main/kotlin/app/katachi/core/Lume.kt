@@ -37,19 +37,22 @@ object Magnet {
     /** How far a dragged piece may be turned off an edge it lines up with, in degrees. */
     const val MAX_DEGREES = 15.0
 
+    /** [move] puts a corner of the piece on [anchor]. */
+    data class Pull(val move: Vec, val anchor: Vec)
+
     /**
      * The move that would put one of [piece]'s corners on a corner of [others], if one is within
      * [reach] tangram units and some edge of the piece runs within [MAX_DEGREES] of an edge of
      * the polygon that corner belongs to. Null when nothing attracts the piece.
      */
-    fun pull(piece: List<Vec>, others: List<List<Vec>>, reach: Double): Vec? {
-        var best: Vec? = null
+    fun pull(piece: List<Vec>, others: List<List<Vec>>, reach: Double): Pull? {
+        var best: Pull? = null
         var bestDistance = reach
         for (v in piece) for (poly in others) for (a in poly) {
             val d = (a - v).length
             if (d <= bestDistance && edgesAlign(piece, poly)) {
                 bestDistance = d
-                best = a - v
+                best = Pull(a - v, a)
             }
         }
         return best
