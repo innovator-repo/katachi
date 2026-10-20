@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,8 +43,13 @@ import androidx.compose.ui.unit.dp
 import app.katachi.LumeCore
 import app.katachi.R
 import app.katachi.core.DailySet
+import app.katachi.core.DailyTarget
+import app.katachi.designsystem.GroupedList
+import app.katachi.designsystem.GroupedRow
+import app.katachi.lumeState
 import app.katachi.core.Day
 import app.katachi.core.Kind
+import app.katachi.designsystem.LumeCard
 import app.katachi.core.Tangram
 import app.katachi.store
 import java.time.format.DateTimeFormatter
@@ -58,6 +62,10 @@ fun HomeScreen(set: DailySet, onOpen: (Kind, Int) -> Unit) {
     val history by LocalContext.current.store.history.collectAsState()
     val day = history.day(set.date)
     val solved = day.results.size
+    val context = LocalContext.current
+    val floorDate by context.lumeState.floorOn.collectAsState()
+    val floor = floorDate == set.date.toString()
+    val target = DailyTarget.of(floor)
     Column(
         Modifier
             .fillMaxSize()
@@ -87,7 +95,14 @@ fun HomeScreen(set: DailySet, onOpen: (Kind, Int) -> Unit) {
                     )
                 }
             }
-            ProgressRing(solved, DailySet.TOTAL)
+            if (floor) ProgressRing(minOf(solved, target), target) else ProgressRing(solved, DailySet.TOTAL)
+        }
+        if (floor) {
+            Text(
+                stringResource(R.string.home_floor),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
         Text(
             when {
@@ -100,7 +115,9 @@ fun HomeScreen(set: DailySet, onOpen: (Kind, Int) -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
         )
         val upcoming = DailySet.order.firstOrNull { (kind, i) -> !day.solved(DailySet.id(kind, i)) }
-        if (upcoming != null) {
+        if (floor && solved >= target) {
+            Text(stringResource(R.string.home_floor_done), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        } else if (upcoming != null) {
             Button(onClick = { onOpen(upcoming.first, upcoming.second) }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = null)
                 Text(
@@ -112,16 +129,20 @@ fun HomeScreen(set: DailySet, onOpen: (Kind, Int) -> Unit) {
             Text(stringResource(R.string.home_done), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         }
         val streak = history.streak(set.date)
-        if (streak > 0) Text(pluralStringResource(R.plurals.home_streak, streak, streak), style = MaterialTheme.typography.bodyMedium)
         val pace = history.tangramPace(set.date)
         val before = history.tangramPace(set.date.minusDays(7))
-        if (pace != null) {
-            Text(
-                if (before != null) stringResource(R.string.home_pace_compare, formatSeconds(pace.roundToInt()), formatSeconds(before.roundToInt()))
-                else stringResource(R.string.home_pace, formatSeconds(pace.roundToInt())),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        if (streak > 0 || pace != null) {
+            GroupedList {
+                var first = true
+                if (streak > 0) {
+                    GroupedRow(stringResource(R.string.row_streak), pluralStringResource(R.plurals.home_streak, streak, streak), first = true)
+                    first = false
+                }
+                if (pace != null) {
+                    GroupedRow(stringResource(R.string.row_pace), formatSeconds(pace.roundToInt()), first = first)
+                    if (before != null) GroupedRow(stringResource(R.string.row_pace_before), formatSeconds(before.roundToInt()))
+                }
+            }
         }
 
         Section(stringResource(R.string.section_tangram), stringResource(R.string.section_tangram_hint))
@@ -181,7 +202,7 @@ private fun TileRow(count: Int, kind: Kind, day: Day, onOpen: (Kind, Int) -> Uni
                 continue
             }
             val result = day.results.firstOrNull { it.id == DailySet.id(kind, i) }
-            OutlinedCard(
+            LumeCard(
                 onClick = { onOpen(kind, i) },
                 border = BorderStroke(
                     if (result != null) 2.dp else 1.dp,
@@ -189,23 +210,25 @@ private fun TileRow(count: Int, kind: Kind, day: Day, onOpen: (Kind, Int) -> Uni
                 ),
                 modifier = Modifier.weight(1f),
             ) {
-                Box(Modifier.fillMaxWidth().aspectRatio(1f).padding(4.dp)) {
-                    preview(i)
-                    if (result != null) {
-                        val pop = popScale(result.id)
-                        Icon(
-                            Icons.Filled.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.align(Alignment.TopEnd).size(18.dp).scale(pop),
-                        )
+                Column {
+                    Box(Modifier.fillMaxWidth().aspectRatio(1f).padding(4.dp)) {
+                        preview(i)
+                        if (result != null) {
+                            val pop = popScale(result.id)
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.align(Alignment.TopEnd).size(18.dp).scale(pop),
+                            )
+                        }
                     }
+                    Text(
+                        result?.let { formatSeconds(it.seconds) } ?: "${i + 1}",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 6.dp),
+                    )
                 }
-                Text(
-                    result?.let { formatSeconds(it.seconds) } ?: "${i + 1}",
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 6.dp),
-                )
             }
         }
     }

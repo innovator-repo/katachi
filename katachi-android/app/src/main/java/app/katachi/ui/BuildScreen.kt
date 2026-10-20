@@ -151,7 +151,7 @@ fun BuildScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Uni
                             off = wrong
                             flagged.clear()
                             flagged.addAll(now.indices.filter { now[it] != puzzle.answer[it] })
-                            haptics.wrong()
+                            haptics.nudge()
                             scope.launch {
                                 for (x in listOf(14f, -12f, 8f, -5f, 2f, 0f)) shake.animateTo(x, tween(45))
                             }

@@ -18,7 +18,6 @@ import androidx.compose.material.icons.outlined.Flip
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -54,6 +53,7 @@ import app.katachi.R
 import app.katachi.core.DailySet
 import app.katachi.core.Geometry
 import app.katachi.core.Kind
+import app.katachi.core.Magnet
 import app.katachi.core.Placed
 import app.katachi.core.Pose
 import app.katachi.core.Raster
@@ -62,17 +62,20 @@ import app.katachi.core.Shape
 import app.katachi.core.Snap
 import app.katachi.core.Tangram
 import app.katachi.core.Vec
+import app.katachi.designsystem.LumeProgressBar
+import app.katachi.designsystem.TangramPalette
+import androidx.compose.ui.platform.LocalDensity
 import app.katachi.store
 import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/** One colour per piece, in the order of [Shape.SET]. */
-private val pieceColors = listOf(
-    Color(0xFFE0614F), Color(0xFF3F8FD2), Color(0xFFF2B33D), Color(0xFF8E6BC8),
-    Color(0xFF4DB38E), Color(0xFFE58AB4), Color(0xFF53B8C9),
-)
+/** One colour per piece, in the order of [Shape.SET]: the wood and mineral tints. */
+private val pieceColors = TangramPalette.pieces
+
+/** How near a dragged piece must come to an edge for the halo and the snap. */
+private val MAGNET_REACH = 12.dp
 
 /** Where each piece waits before it is used: two rows under the silhouette, centred on it. */
 private fun trayPoses(tangram: Tangram): List<Pose> {
@@ -118,6 +121,7 @@ fun TangramScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> U
     val store = LocalContext.current.store
     val math = LumeCore.active
     val haptics = rememberHaptics()
+    val reachPx = with(LocalDensity.current) { MAGNET_REACH.toPx() }
     val scope = rememberCoroutineScope()
     val raster = remember(tangram) { Raster(tangram) }
     val clock = remember(tangram) { Clock() }
@@ -132,6 +136,8 @@ fun TangramScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> U
     var covered by remember(tangram) { mutableStateOf(0f) }
     var size by remember { mutableStateOf(IntSize.Zero) }
     var dragging by remember { mutableIntStateOf(-1) }
+    // The corner a dragged piece is being drawn towards, in world units; null when nothing attracts it.
+    var halo by remember(tangram) { mutableStateOf<Vec?>(null) }
 
     // The last piece moved eases from where it was to where it landed: a short slide and, after a tap, a turn.
     var moving by remember(tangram) { mutableIntStateOf(-1) }
@@ -158,9 +164,14 @@ fun TangramScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> U
     fun settle(i: Int, before: Placed, turned: Boolean = false) {
         val others = pieces.filterIndexed { j, _ -> j != i }.flatMap { it.polygon }
         val loose = pieces[i]
-        val snapped = Snap.snap(loose, tangram.vertices + others)
+        val pull = if (size == IntSize.Zero) null else {
+            Magnet.pull(loose.polygon, tangram.pieces.map { it.polygon } + pieces.filterIndexed { j, _ -> j != i }.map { it.polygon }, reachPx / frame().scale.toDouble())
+        }
+        val snapped = if (pull != null) loose.copy(pose = loose.pose.copy(at = loose.pose.at + pull.move)) else Snap.snap(loose, tangram.vertices + others)
         pieces[i] = snapped
-        if (snapped.pose.at != loose.pose.at) haptics.tick()
+        halo = null
+        val crowded = pieces.filterIndexed { j, _ -> j != i }.any { Geometry.overlaps(snapped.polygon, it.polygon) }
+        if (snapped.pose.at != loose.pose.at) haptics.snap() else if (crowded && !turned) haptics.nudge()
         moving = colorOf[i]
         val scale = if (size == IntSize.Zero) 0f else frame().scale
         val gap = before.pose.at - snapped.pose.at
@@ -191,6 +202,7 @@ fun TangramScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> U
     // Opaque, so the seams where answer pieces meet don't show through as darker lines.
     val silhouette = lerp(MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.onSurface, 0.82f)
     val solvedFill = MaterialTheme.colorScheme.primary
+    val haloColor = MaterialTheme.colorScheme.primary
     val hintLine = MaterialTheme.colorScheme.surface
     val edge = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
     val shadow = Color.Black.copy(alpha = 0.22f)
@@ -237,7 +249,12 @@ fun TangramScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> U
                                     change.consume()
                                     val p = pieces[dragging]
                                     val scale = frame().scale
-                                    pieces[dragging] = p.copy(pose = p.pose.copy(at = p.pose.at + Vec(amount.x / scale.toDouble(), amount.y / scale.toDouble())))
+                                    val moved = p.copy(pose = p.pose.copy(at = p.pose.at + Vec(amount.x / scale.toDouble(), amount.y / scale.toDouble())))
+                                    pieces[dragging] = moved
+                                    val others = tangram.pieces.map { it.polygon } + pieces.filterIndexed { j, _ -> j != dragging }.map { it.polygon }
+                                    val near = Magnet.pull(moved.polygon, others, reachPx / scale.toDouble())?.anchor
+                                    if (near != null && halo == null) haptics.tick()
+                                    halo = near
                                 }
                             },
                             onDragEnd = {
@@ -250,6 +267,7 @@ fun TangramScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> U
                             },
                             onDragCancel = {
                                 dragging = -1
+                                halo = null
                                 scope.launch { lift.snapTo(1f) }
                             },
                         )
@@ -269,6 +287,11 @@ fun TangramScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> U
                         piece.polygon.toPath(f), hintLine,
                         style = Stroke(2.dp.toPx(), join = StrokeJoin.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f))),
                     )
+                }
+                halo?.let { at ->
+                    val c = f.toScreen(at)
+                    drawCircle(haloColor.copy(alpha = 0.18f), reachPx, c)
+                    drawCircle(haloColor, reachPx, c, style = Stroke(2.dp.toPx()))
                 }
                 pieces.forEachIndexed { i, piece ->
                     val path = piece.polygon.toPath(f)
@@ -292,7 +315,7 @@ fun TangramScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> U
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    LinearProgressIndicator(progress = animatedFraction(covered), modifier = Modifier.weight(1f))
+                    LumeProgressBar(progress = covered, modifier = Modifier.weight(1f))
                     Text(
                         stringResource(R.string.tangram_cover, (covered * 100).roundToInt()),
                         style = MaterialTheme.typography.labelMedium,

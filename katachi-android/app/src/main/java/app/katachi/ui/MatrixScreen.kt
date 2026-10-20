@@ -21,7 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import app.katachi.R
 import app.katachi.core.DailySet
 import app.katachi.core.Kind
+import app.katachi.designsystem.LumeCard
 import app.katachi.core.Result
 import app.katachi.store
 import kotlinx.coroutines.launch
@@ -97,7 +97,7 @@ fun MatrixScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Un
                                             if (filled) {
                                                 GridView(puzzle.cells[8], Modifier.scale(pop), ink = MaterialTheme.colorScheme.primary)
                                             } else {
-                                                OutlinedCard(Modifier.fillMaxWidth().aspectRatio(1f)) {
+                                                LumeCard(Modifier.fillMaxWidth().aspectRatio(1f)) {
                                                     Box(Modifier.fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
                                                         Text("?", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                                                     }
@@ -116,9 +116,9 @@ fun MatrixScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Un
                         val isWrong = i in wrong
                         val isRight = solvedIn != null && i == puzzle.answer
                         val dim = animatedFraction(if (isWrong || (solvedIn != null && !isRight)) 0.4f else 1f)
-                        OutlinedCard(
+                        LumeCard(
                             onClick = {
-                                if (solvedIn != null || isWrong) return@OutlinedCard
+                                if (solvedIn != null || isWrong) return@LumeCard
                                 if (i == puzzle.answer) {
                                     val seconds = clock.stop()
                                     solvedIn = seconds
@@ -127,9 +127,9 @@ fun MatrixScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Un
                                 } else {
                                     wrong += i
                                     shaking = i
-                                    haptics.wrong()
+                                    haptics.nudge()
                                     scope.launch {
-                                        for (x in listOf(16f, -14f, 10f, -7f, 4f, 0f)) shake.animateTo(x, tween(45))
+                                        for (x in listOf(6f, -5f, 3f, 0f)) shake.animateTo(x, tween(60))
                                     }
                                 }
                             },
@@ -137,7 +137,7 @@ fun MatrixScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Un
                                 if (isRight || isWrong) 2.dp else 1.dp,
                                 when {
                                     isRight -> MaterialTheme.colorScheme.primary
-                                    isWrong -> MaterialTheme.colorScheme.error
+                                    isWrong -> MaterialTheme.colorScheme.outline
                                     else -> MaterialTheme.colorScheme.outline
                                 },
                             ),
@@ -155,7 +155,7 @@ fun MatrixScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Un
                     Text(
                         stringResource(R.string.matrix_wrong),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }
