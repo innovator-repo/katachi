@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import app.katachi.R
@@ -148,6 +149,7 @@ fun MatrixScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Un
                             ),
                             modifier = Modifier
                                 .weight(1f)
+                                .testTag("option$i")
                                 .offset { IntOffset(if (i == shaking) shake.value.roundToInt() else 0, 0) }
                                 .scale(if (isRight) pop else 1f)
                                 .alpha(dim),
