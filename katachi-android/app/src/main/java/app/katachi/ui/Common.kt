@@ -55,7 +55,10 @@ import app.katachi.core.BuildRule
 import app.katachi.core.DailySet
 import app.katachi.core.GridMath
 import app.katachi.core.Kind
+import app.katachi.core.Phase
 import app.katachi.designsystem.HapticToken
+import app.katachi.designsystem.LocalPhase
+import app.katachi.designsystem.LumeBar
 import app.katachi.designsystem.LumeMotion
 import app.katachi.designsystem.TangramPalette
 import app.katachi.designsystem.LumeHaptics
@@ -114,7 +117,7 @@ fun stepOf(kind: Kind, index: Int) = DailySet.order.indexOf(kind to index)
 
 /** Where a puzzle sits in the day: one segment per puzzle, solved ones filled, this one outlined. */
 @Composable
-fun DayProgress(solved: List<Boolean>, current: Int, modifier: Modifier = Modifier) {
+fun DayProgress(solved: List<Boolean>, current: Int, modifier: Modifier = Modifier, attempt: Float = 0f) {
     val done = MaterialTheme.colorScheme.primary
     val todo = MaterialTheme.colorScheme.surfaceVariant
     val here = MaterialTheme.colorScheme.onSurface
@@ -125,7 +128,11 @@ fun DayProgress(solved: List<Boolean>, current: Int, modifier: Modifier = Modifi
         solved.forEachIndexed { i, isDone ->
             val at = Offset(i * (w + gap), 0f)
             drawRoundRect(if (isDone) done else todo, at, Size(w, size.height), r)
-            if (i == current && !isDone) drawRoundRect(here, at, Size(w, size.height), r, style = Stroke(1.5.dp.toPx()))
+            if (i == current && !isDone) {
+                // A wrong try still moves the bar a little: progress never stands still.
+                if (attempt > 0f) drawRoundRect(done.copy(alpha = 0.5f), at, Size(w * attempt.coerceIn(0f, 1f), size.height), r)
+                drawRoundRect(here, at, Size(w, size.height), r, style = Stroke(1.5.dp.toPx()))
+            }
         }
     }
 }
@@ -140,6 +147,7 @@ fun PuzzleFrame(
     progress: List<Boolean>,
     step: Int,
     onBack: () -> Unit,
+    attempt: Float = 0f,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -150,6 +158,7 @@ fun PuzzleFrame(
         }
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+        LumeBar {
         Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -174,7 +183,8 @@ fun PuzzleFrame(
                 )
             }
         }
-        DayProgress(progress, step, Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+        }
+        DayProgress(progress, step, Modifier.padding(horizontal = 16.dp, vertical = 4.dp), attempt)
         content()
     }
 }
@@ -312,4 +322,8 @@ fun popScale(trigger: Any?): Float {
 }
 
 @Composable
-fun animatedFraction(target: Float): Float = animateFloatAsState(target, LumeMotion.effects(), label = "fraction").value
+fun animatedFraction(target: Float): Float {
+    // At night the animations slow down so the screen feels asleep.
+    val calm = LocalPhase.current == Phase.SLEEP
+    return animateFloatAsState(target, if (calm) tween(900) else LumeMotion.effects(), label = "fraction").value
+}

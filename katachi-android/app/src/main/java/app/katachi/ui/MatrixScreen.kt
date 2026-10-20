@@ -38,6 +38,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import app.katachi.R
 import app.katachi.core.DailySet
 import app.katachi.core.Kind
@@ -70,6 +72,7 @@ fun MatrixScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Un
             progress = dayProgress(set),
             step = stepOf(Kind.MATRIX, index),
             onBack = onBack,
+            attempt = if (solvedIn == null) (wrong.size * 0.25f).coerceAtMost(0.75f) else 0f,
         ) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
                 Text(
@@ -87,7 +90,9 @@ fun MatrixScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Un
                                 val i = row * 3 + col
                                 Box(Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
                                     if (i < 8) {
-                                        GridView(puzzle.cells[i])
+                                        // After a miss, the two grids to compare in the gap's row glow jade.
+                                        val lit = wrong.isNotEmpty() && solvedIn == null && i in 6..7
+                                        GridView(puzzle.cells[i], if (lit) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(6.dp)) else Modifier)
                                     } else {
                                         AnimatedContent(
                                             solvedIn != null,

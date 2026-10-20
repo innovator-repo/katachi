@@ -86,6 +86,7 @@ fun BuildScreen(set: DailySet, index: Int, onBack: () -> Unit, onNext: () -> Uni
             progress = dayProgress(set),
             step = stepOf(Kind.BUILD, index),
             onBack = onBack,
+            attempt = if (solvedIn == null) (tries * 0.25f).coerceAtMost(0.75f) else 0f,
         ) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
                 Text(puzzle.rule.title, style = MaterialTheme.typography.titleMedium)
