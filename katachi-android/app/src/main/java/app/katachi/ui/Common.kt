@@ -1,14 +1,9 @@
 package app.katachi.ui
 
-import android.os.Build
-import android.view.HapticFeedbackConstants
-import android.view.View
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -53,7 +48,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.katachi.R
@@ -61,6 +55,11 @@ import app.katachi.core.BuildRule
 import app.katachi.core.DailySet
 import app.katachi.core.GridMath
 import app.katachi.core.Kind
+import app.katachi.designsystem.HapticToken
+import app.katachi.designsystem.LumeMotion
+import app.katachi.designsystem.TangramPalette
+import app.katachi.designsystem.LumeHaptics
+import app.katachi.designsystem.rememberLumeHaptics
 import app.katachi.store
 import kotlinx.coroutines.delay
 import kotlin.math.cos
@@ -83,23 +82,24 @@ class Clock {
 
 fun formatSeconds(seconds: Int) = "%d:%02d".format(seconds / 60, seconds % 60)
 
-/** Small taps of the vibration motor: a tick for a snap, a buzz for a wrong answer, a thud for a solve. */
-class Haptics(private val view: View) {
-    fun tick() = view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+/** Touch signatures for the puzzle screens; see [HapticToken]. */
+class Haptics(private val lume: LumeHaptics) {
+    /** A piece or square settling. */
+    fun tick() = lume.play(HapticToken.TICK)
 
-    fun wrong() = view.performHapticFeedback(
-        if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.REJECT else HapticFeedbackConstants.LONG_PRESS,
-    )
+    /** A snap onto an edge. */
+    fun snap() = lume.play(HapticToken.CLICK)
 
-    fun solved() = view.performHapticFeedback(
-        if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.LONG_PRESS,
-    )
+    /** A miss: a soft double tap that points the way, never a buzz. */
+    fun nudge() = lume.play(HapticToken.GENTLE_NUDGE)
+
+    fun solved() = lume.play(HapticToken.CHECK_COMPLETE)
 }
 
 @Composable
 fun rememberHaptics(): Haptics {
-    val view = LocalView.current
-    return remember(view) { Haptics(view) }
+    val lume = rememberLumeHaptics()
+    return remember(lume) { Haptics(lume) }
 }
 
 /** Which of the day's puzzles are solved, in [DailySet.order]. */
@@ -184,7 +184,7 @@ fun PuzzleFrame(
 fun SolvedPanel(visible: Boolean, seconds: Int, note: String?, onNext: () -> Unit) {
     AnimatedVisibility(
         visible = visible,
-        enter = slideInVertically(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) { it } + fadeIn(),
+        enter = slideInVertically(LumeMotion.spatial()) { it } + fadeIn(),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.primaryContainer,
@@ -212,8 +212,6 @@ fun SolvedPanel(visible: Boolean, seconds: Int, note: String?, onNext: () -> Uni
 
 private class Spark(val angle: Float, val speed: Float, val spin: Float, val color: Color, val size: Float)
 
-private val sparkColors = listOf(0xFFE0614F, 0xFF3F8FD2, 0xFFF2B33D, 0xFF8E6BC8, 0xFF4DB38E, 0xFFE58AB4, 0xFF53B8C9)
-
 /** A burst of falling confetti from the upper middle, played once when [play] turns true. */
 @Composable
 fun Confetti(play: Boolean, modifier: Modifier = Modifier) {
@@ -224,7 +222,7 @@ fun Confetti(play: Boolean, modifier: Modifier = Modifier) {
                 angle = Random.nextFloat() * 6.283f,
                 speed = 0.4f + Random.nextFloat(),
                 spin = Random.nextFloat() * 4f,
-                color = Color(sparkColors.random()),
+                color = TangramPalette.pieces.random(),
                 size = 14f + Random.nextFloat() * 14f,
             )
         }
@@ -308,10 +306,10 @@ fun popScale(trigger: Any?): Float {
     LaunchedEffect(trigger) {
         if (trigger == null) return@LaunchedEffect
         scale.snapTo(0.9f)
-        scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+        scale.animateTo(1f, LumeMotion.spatial())
     }
     return scale.value
 }
 
 @Composable
-fun animatedFraction(target: Float): Float = animateFloatAsState(target, tween(400), label = "fraction").value
+fun animatedFraction(target: Float): Float = animateFloatAsState(target, LumeMotion.effects(), label = "fraction").value

@@ -19,9 +19,14 @@
     <string name="home_continue">Continue</string>
     <string name="home_done">All done for today. New puzzles tomorrow.</string>
     <plurals name="home_streak">
-        <item quantity="one">%d day in a row with the whole set</item>
-        <item quantity="other">%d days in a row with the whole set</item>
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
     </plurals>
+    <string name="home_floor">Low-energy day: one puzzle is enough.</string>
+    <string name="home_floor_done">Today\'s one puzzle is done. Anything more is a bonus.</string>
+    <string name="row_streak">Days in a row with the whole set</string>
+    <string name="row_pace">Tangram pace this week</string>
+    <string name="row_pace_before">The week before</string>
     <string name="home_pace">Tangrams this week: %1$s each on average</string>
     <string name="home_pace_compare">Tangrams this week: %1$s each on average (the week before: %2$s)</string>
     <string name="section_tangram">Tangram</string>
