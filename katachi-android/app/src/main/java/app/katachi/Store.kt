@@ -26,8 +26,11 @@ class Store(private val context: Context) {
         temp.writeText(Codec.encode(next))
         temp.renameTo(file)
         state.value = next
-        KasaneLink.report(context, date, next.day(date).results.size)
+        val solved = next.day(date).results.size
+        KasaneLink.report(context, date, solved)
+        KasaneLink.metrics(context, solved, context.lumeState.target(date), result.seconds * 1000L)
     }
 }
 
 val Context.store: Store get() = (applicationContext as KatachiApp).store
+val Context.lumeState: LumeState get() = (applicationContext as KatachiApp).lumeState

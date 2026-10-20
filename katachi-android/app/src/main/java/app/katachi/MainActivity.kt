@@ -1,5 +1,6 @@
 package app.katachi
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -14,10 +15,10 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import app.katachi.core.DailySet
 import app.katachi.core.Kind
+import app.katachi.designsystem.LumeSpinner
 import app.katachi.ui.BuildScreen
 import app.katachi.ui.HomeScreen
 import app.katachi.ui.KatachiTheme
@@ -43,10 +45,24 @@ class MainActivity : ComponentActivity() {
     // Checked on every resume, so a set left open overnight turns into the new day's.
     private val today = mutableStateOf(LocalDate.now())
 
+    // Set by katachi://puzzle/next; the screen opens the next unsolved puzzle and clears it.
+    private val wantsNext = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { KatachiTheme { Katachi(today) } }
+        if (savedInstanceState == null) noteDeepLink(intent)
+        setContent { KatachiTheme { Katachi(today, wantsNext) } }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        noteDeepLink(intent)
+    }
+
+    private fun noteDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "katachi" && uri.host == "puzzle" && uri.path == "/next") wantsNext.value = true
     }
 
     override fun onResume() {
@@ -62,7 +78,7 @@ private data class Open(val kind: Kind, val index: Int)
 private val order = DailySet.order.map { (kind, i) -> Open(kind, i) }
 
 @Composable
-private fun Katachi(todayState: MutableState<LocalDate>) {
+private fun Katachi(todayState: MutableState<LocalDate>, wantsNext: MutableState<Boolean>) {
     val today by todayState
     val store = LocalContext.current.store
     // Earlier days only, so the level holds still while today's puzzles are being solved.
@@ -74,10 +90,17 @@ private fun Katachi(todayState: MutableState<LocalDate>) {
     var openKind by rememberSaveable(today) { mutableStateOf<Kind?>(null) }
     var openIndex by rememberSaveable(today) { mutableStateOf(0) }
 
+    LaunchedEffect(set, wantsNext.value) {
+        if (set == null || !wantsNext.value) return@LaunchedEffect
+        wantsNext.value = false
+        val solved = store.history.value.day(today)
+        order.firstOrNull { !solved.solved(DailySet.id(it.kind, it.index)) }?.let { openKind = it.kind; openIndex = it.index }
+    }
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         val daily = set
         if (daily == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LumeSpinner() }
             return@Surface
         }
         val shown = openKind?.let { Open(it, openIndex) }

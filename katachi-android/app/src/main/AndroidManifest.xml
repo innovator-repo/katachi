@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Lets the solved count reach Kasane's "Pattern puzzles" item. -->
+    <!-- Shared by the Lume apps; only apps signed with the same key hold it. -->
+    <permission
+        android:name="app.lume.permission.ECOSYSTEM_SYNC"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="app.lume.permission.ECOSYSTEM_SYNC" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Lets the solved count reach Kasane, and lets us see the other Lume apps. -->
     <queries>
         <package android:name="app.kasane" />
+        <package android:name="app.ren.japanese" />
+        <package android:name="com.sigil.app" />
+        <package android:name="com.vow.app" />
+        <package android:name="com.duolingo" />
     </queries>
 
     <application
@@ -24,6 +35,28 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="katachi" android:host="puzzle" android:pathPrefix="/next" />
+            </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".FloorModeReceiver"
+            android:exported="true"
+            android:permission="app.lume.permission.ECOSYSTEM_SYNC">
+            <intent-filter>
+                <action android:name="app.lume.action.FLOOR_MODE" />
+            </intent-filter>
+        </receiver>
+
+        <provider
+            android:name=".StatusProvider"
+            android:authorities="app.katachi.provider"
+            android:exported="true"
+            android:readPermission="app.lume.permission.ECOSYSTEM_SYNC"
+            android:writePermission="app.lume.permission.ECOSYSTEM_SYNC" />
     </application>
 </manifest>
