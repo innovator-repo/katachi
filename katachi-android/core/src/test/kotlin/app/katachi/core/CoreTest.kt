@@ -187,3 +187,44 @@ class CoreTest {
         }
     }
 }
+
+class LumeTest {
+    @Test fun floorModeLowersTheTargetToOne() {
+        assertEquals(1, DailyTarget.of(true))
+        assertEquals(5, DailyTarget.of(false))
+    }
+
+    @Test fun circadianPhasesFollowTheClock() {
+        assertEquals(Phase.SLEEP, Phase.at(3))
+        assertEquals(Phase.MORNING, Phase.at(6))
+        assertEquals(Phase.MORNING, Phase.at(11))
+        assertEquals(Phase.DAY, Phase.at(12))
+        assertEquals(Phase.DAY, Phase.at(19))
+        assertEquals(Phase.EVENING, Phase.at(20))
+        assertEquals(Phase.SLEEP, Phase.at(22))
+        assertEquals(Phase.SLEEP, Phase.at(0))
+    }
+
+    private val square = listOf(Vec(0.0, 0.0), Vec(1.0, 0.0), Vec(1.0, 1.0), Vec(0.0, 1.0))
+    private fun shifted(dx: Double, dy: Double) = square.map { it + Vec(dx, dy) }
+
+    @Test fun nearbyAlignedCornerAttracts() {
+        val pull = Magnet.pull(shifted(1.05, 0.02), listOf(square), 0.2)!!
+        assertEquals(-0.05, pull.x, 1e-9)
+        assertEquals(-0.02, pull.y, 1e-9)
+    }
+
+    @Test fun farPieceIsLeftAlone() {
+        assertEquals(null, Magnet.pull(shifted(1.5, 0.0), listOf(square), 0.2))
+    }
+
+    @Test fun pieceTurnedTooFarIsLeftAlone() {
+        val c = Math.cos(Math.toRadians(30.0)); val s = Math.sin(Math.toRadians(30.0))
+        val turned = square.map { Vec(it.x * c - it.y * s + 1.05, it.x * s + it.y * c) }
+        assertEquals(null, Magnet.pull(turned, listOf(square), 0.2))
+    }
+
+    @Test fun ecoPayloadIsJson() {
+        assertEquals("""{"solved":3,"target":5,"solveTimeMs":41000}""", EcoMetrics.payload(3, 5, 41000))
+    }
+}
