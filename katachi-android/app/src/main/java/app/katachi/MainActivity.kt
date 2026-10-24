@@ -111,8 +111,8 @@ private fun Katachi(todayState: MutableState<LocalDate>, wantsNext: MutableState
                 // Into a puzzle slides in from the right; back home slides the other way.
                 val forward = targetState != null && (initialState == null || order.indexOf(targetState!!) > order.indexOf(initialState!!))
                 val sign = if (forward) 1 else -1
-                (slideInHorizontally(tween(280)) { it * sign / 3 } + fadeIn(tween(280))) togetherWith
-                    (slideOutHorizontally(tween(220)) { -it * sign / 4 } + fadeOut(tween(200)))
+                (slideInHorizontally(app.katachi.designsystem.LumeMotion.spatial()) { it * sign / 3 } + fadeIn(app.katachi.designsystem.LumeMotion.effects())) togetherWith
+                    (slideOutHorizontally(app.katachi.designsystem.LumeMotion.spatial()) { -it * sign / 4 } + fadeOut(app.katachi.designsystem.LumeMotion.effects()))
             },
             label = "screen",
         ) { open ->
