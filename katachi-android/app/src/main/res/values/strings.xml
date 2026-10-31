@@ -57,4 +57,30 @@
         <item quantity="one">%d square is off. Keep going.</item>
         <item quantity="other">%d squares are off. Keep going.</item>
     </plurals>
+    <string name="hero_puzzle">PUZZLE %1$d OF %2$d</string>
+    <string name="hero_done_label">TODAY</string>
+    <string name="hero_done">All ten solved</string>
+    <string name="hero_solve">Solve it</string>
+    <string name="drawer_title">Today</string>
+    <string name="drawer_summary">%1$d of %2$d solved</string>
+    <string name="drawer_count">%1$d of %2$d</string>
+    <string name="drawer_best">Best time today</string>
+    <string name="none_yet">None yet</string>
+    <string name="chip_stats">Stats</string>
+    <string name="chip_streak">Streak</string>
+    <string name="chip_streak_n">Streak %1$d</string>
+    <string name="settings">Settings</string>
+    <string name="settings_floor">Low-energy day</string>
+    <string name="settings_version">Version</string>
+    <string name="stats_total">Puzzles solved</string>
+    <string name="stats_best">Best time, %1$s</string>
+    <string name="stats_last14">Last 14 days</string>
+    <string name="stats_from_today">Nothing solved in the last 14 days yet. Bars fill in from today.</string>
+    <string name="streak_current">Current streak</string>
+    <string name="streak_best">Best streak</string>
+    <string name="streak_from_today">No whole set solved yet. Solve all ten in a day and your streak starts from today.</string>
+    <string name="widget_title">Today</string>
+    <string name="widget_summary">%1$d of %2$d</string>
+    <string name="widget_summary_empty">0 of 10</string>
+    <string name="widget_description">Ten segments for today\'s puzzles and a Solve button.</string>
 </resources>

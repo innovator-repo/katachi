@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_canvas">#FAF8F5</color>
+    <color name="widget_ink">#1A1B1A</color>
+    <color name="widget_ink_soft">#5E605C</color>
+    <color name="widget_track">#DDD9D0</color>
+    <color name="widget_accent">#1E7D68</color>
+    <color name="widget_on_accent">#FFFFFF</color>
+    <style name="WidgetSegment">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_marginStart">2dp</item>
+        <item name="android:layout_marginEnd">2dp</item>
+        <item name="android:background">@drawable/widget_seg_off</item>
+    </style>
+</resources>

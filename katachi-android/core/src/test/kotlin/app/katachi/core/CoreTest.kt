@@ -229,3 +229,67 @@ class LumeTest {
         assertEquals("""{"solved":3,"target":5,"solveTimeMs":41000}""", EcoMetrics.payload(3, 5, 41000))
     }
 }
+
+class InsightsTest {
+    private val today = LocalDate.of(2026, 10, 17)
+
+    private fun full(h: History, date: LocalDate): History =
+        DailySet.order.fold(h) { acc, (k, i) -> acc.withResult(date, Result(DailySet.id(k, i), 60)) }
+
+    @Test fun perDayCountsAndKinds() {
+        var h = History()
+        h = h.withResult(today, Result("t0", 40)).withResult(today, Result("t1", 30)).withResult(today, Result("m0", 20))
+        h = h.withResult(today.minusDays(2), Result("b0", 50))
+        assertEquals(2, h.day(today).solvedOf(Kind.TANGRAM))
+        assertEquals(1, h.day(today).solvedOf(Kind.MATRIX))
+        assertEquals(0, h.day(today).solvedOf(Kind.BUILD))
+        assertEquals(30, h.bestSeconds(Kind.TANGRAM))
+        assertEquals(50, h.bestSeconds(Kind.BUILD))
+        assertEquals(20, h.day(today).bestSeconds())
+        assertEquals(null, History().bestSeconds(Kind.MATRIX))
+        assertEquals(4, h.totalSolved())
+        val counts = h.dailyCounts(today, 14)
+        assertEquals(14, counts.size)
+        assertEquals(3, counts.last())
+        assertEquals(1, counts[11])
+        assertEquals(0, counts[12])
+        assertEquals(List(14) { 0 }, History().dailyCounts(today))
+    }
+
+    @Test fun bestStreakFindsTheLongestRun() {
+        var h = History()
+        assertEquals(0, h.bestStreak())
+        for (back in listOf(10L, 9L, 8L, 7L, 3L, 2L)) h = full(h, today.minusDays(back))
+        h = h.withResult(today.minusDays(1), Result("t0", 10)) // half a day breaks nothing and counts nothing
+        assertEquals(4, h.bestStreak())
+        assertEquals(0, h.streak(today))
+        h = full(h, today.minusDays(1))
+        assertEquals(3, h.streak(today))
+        assertEquals(4, h.bestStreak())
+    }
+
+    @Test fun nextPuzzleIsTheFirstUnsolvedInPlayOrder() {
+        var d = Day(today.toString())
+        assertEquals(Kind.TANGRAM to 0, d.nextUnsolved())
+        assertEquals(1, d.nextNumber())
+        d = d.copy(results = listOf(Result("t0", 1), Result("t1", 1), Result("t3", 1)))
+        assertEquals(Kind.TANGRAM to 2, d.nextUnsolved())
+        assertEquals(3, d.nextNumber())
+        assertEquals(null, full(History(), today).day(today).nextNumber())
+    }
+
+    @Test fun providerRowKeepsOldColumnsAndAddsStreak() {
+        val row = StatusRow.of(solved = 4, target = 10, streak = 5)
+        assertEquals(listOf("solved", "target", "doneToday", "streak"), row.keys.toList())
+        assertEquals(mapOf("solved" to 4, "target" to 10, "doneToday" to 0, "streak" to 5), row)
+        assertEquals(1, StatusRow.of(1, 1, 0)["doneToday"])
+    }
+
+    @Test fun widgetSegmentsAreClamped() {
+        assertEquals(10, segments(0).size)
+        assertEquals(0, segments(0).count { it })
+        assertEquals(6, segments(6).count { it })
+        assertEquals(10, segments(99).count { it })
+        assertEquals(0, segments(-3).count { it })
+    }
+}

@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import app.katachi.core.StatusRow
 import java.time.LocalDate
 
 /** Read-only `content://app.katachi.provider/status`: one row of today's progress for the other apps. */
@@ -16,7 +17,7 @@ class StatusProvider : ContentProvider() {
         val today = LocalDate.now()
         val solved = context.store.history.value.day(today).results.size
         val target = context.lumeState.target(today)
-        val all = mapOf("solved" to solved, "target" to target, "doneToday" to if (solved >= target) 1 else 0)
+        val all = StatusRow.of(solved, target, context.store.history.value.streak(today))
         val columns = projection?.filter { it in all }?.toTypedArray()?.takeIf { it.isNotEmpty() } ?: all.keys.toTypedArray()
         return MatrixCursor(columns).apply { addRow(columns.map { all.getValue(it) }) }
     }

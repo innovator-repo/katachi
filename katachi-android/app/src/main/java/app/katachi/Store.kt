@@ -26,6 +26,7 @@ class Store(private val context: Context) {
         temp.writeText(Codec.encode(next))
         temp.renameTo(file)
         state.value = next
+        TodayWidget.refresh(context)
         val solved = next.day(date).results.size
         KasaneLink.report(context, date, solved)
         KasaneLink.metrics(context, solved, context.lumeState.target(date), result.seconds * 1000L)

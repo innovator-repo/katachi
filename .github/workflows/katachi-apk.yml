@@ -65,8 +65,8 @@ jobs:
             katachi-android/app/build/reports/androidTests/
             katachi-android/app/build/outputs/androidTest-results/
           if-no-files-found: ignore
-      - run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Katachi-0.1.0.apk
+      - run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Katachi-0.3.0.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Katachi-0.1.0
-          path: katachi-android/app/build/outputs/apk/release/Katachi-0.1.0.apk
+          name: Katachi-0.3.0
+          path: katachi-android/app/build/outputs/apk/release/Katachi-0.3.0.apk

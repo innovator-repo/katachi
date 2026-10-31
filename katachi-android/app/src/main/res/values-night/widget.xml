@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_canvas">#141716</color>
+    <color name="widget_ink">#E9ECEA</color>
+    <color name="widget_ink_soft">#A2A9A5</color>
+    <color name="widget_track">#2E3431</color>
+    <color name="widget_accent">#5DD2B0</color>
+    <color name="widget_on_accent">#06372B</color>
+</resources>

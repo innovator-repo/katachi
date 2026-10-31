@@ -19,7 +19,7 @@ import java.time.LocalTime
 /** Katachi's accent: carved imperial jade. */
 object LumeAccent {
     val Jade = Color(0xFF1E7D68)
-    val JadeLight = Color(0xFF66D4B8)
+    val JadeLight = Color(0xFF5DD2B0)
 }
 
 /** Tokens shared across the apps: calm semantic colours, and the seal colour. */

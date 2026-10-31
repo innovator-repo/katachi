@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/widget_title"
+            android:textColor="@color/widget_ink"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_summary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_summary_empty"
+            android:textColor="@color/widget_ink_soft"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_segments"
+        android:layout_width="match_parent"
+        android:layout_height="12dp"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <View android:id="@+id/seg0" style="@style/WidgetSegment" />
+        <View android:id="@+id/seg1" style="@style/WidgetSegment" />
+        <View android:id="@+id/seg2" style="@style/WidgetSegment" />
+        <View android:id="@+id/seg3" style="@style/WidgetSegment" />
+        <View android:id="@+id/seg4" style="@style/WidgetSegment" />
+        <View android:id="@+id/seg5" style="@style/WidgetSegment" />
+        <View android:id="@+id/seg6" style="@style/WidgetSegment" />
+        <View android:id="@+id/seg7" style="@style/WidgetSegment" />
+        <View android:id="@+id/seg8" style="@style/WidgetSegment" />
+        <View android:id="@+id/seg9" style="@style/WidgetSegment" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_solve"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/widget_button"
+        android:gravity="center"
+        android:text="@string/hero_solve"
+        android:textColor="@color/widget_on_accent"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+</LinearLayout>

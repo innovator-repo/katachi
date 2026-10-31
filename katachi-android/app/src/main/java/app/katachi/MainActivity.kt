@@ -36,6 +36,9 @@ import app.katachi.ui.BuildScreen
 import app.katachi.ui.HomeScreen
 import app.katachi.ui.KatachiTheme
 import app.katachi.ui.MatrixScreen
+import app.katachi.ui.SettingsScreen
+import app.katachi.ui.StatsScreen
+import app.katachi.ui.StreakScreen
 import app.katachi.ui.TangramScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -89,6 +92,8 @@ private fun Katachi(todayState: MutableState<LocalDate>, wantsNext: MutableState
     }
     var openKind by rememberSaveable(today) { mutableStateOf<Kind?>(null) }
     var openIndex by rememberSaveable(today) { mutableStateOf(0) }
+    // The screen behind a chip or the gear: "stats", "streak" or "settings"; null is the main screen.
+    var sub by rememberSaveable { mutableStateOf<String?>(null) }
 
     LaunchedEffect(set, wantsNext.value) {
         if (set == null || !wantsNext.value) return@LaunchedEffect
@@ -104,7 +109,7 @@ private fun Katachi(todayState: MutableState<LocalDate>, wantsNext: MutableState
             return@Surface
         }
         val shown = openKind?.let { Open(it, openIndex) }
-        if (shown != null) BackHandler { openKind = null }
+        if (shown != null) BackHandler { openKind = null } else if (sub != null) BackHandler { sub = null }
         AnimatedContent(
             shown,
             transitionSpec = {
@@ -117,7 +122,18 @@ private fun Katachi(todayState: MutableState<LocalDate>, wantsNext: MutableState
             label = "screen",
         ) { open ->
             if (open == null) {
-                HomeScreen(daily, onOpen = { k, i -> openKind = k; openIndex = i })
+                when (sub) {
+                    "stats" -> StatsScreen(today) { sub = null }
+                    "streak" -> StreakScreen(today) { sub = null }
+                    "settings" -> SettingsScreen(today) { sub = null }
+                    else -> HomeScreen(
+                        daily,
+                        onOpen = { k, i -> openKind = k; openIndex = i },
+                        onStats = { sub = "stats" },
+                        onStreak = { sub = "streak" },
+                        onSettings = { sub = "settings" },
+                    )
+                }
                 return@AnimatedContent
             }
             val close = { openKind = null }
